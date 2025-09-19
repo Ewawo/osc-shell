@@ -166,14 +166,19 @@ int execute_expression(Expression& expression) {
 int step1(bool showPrompt) {
   // create communication channel shared between the two processes
   // ...
-
+  int p[2];
+  pipe(p);
   pid_t child1 = fork();
   if (child1 == 0) {
     // redirect standard output (STDOUT_FILENO) to the input of the shared communication channel
     // free non used resources (why?)
+    dup2(p[1], STDOUT_FILENO);
+    close(p[0]);
+    close(p[1]);
     Command cmd = {{string("date")}};
     execute_command(cmd);
     // display nice warning that the executable could not be found
+    perror("an error has occured");
     abort(); // if the executable is not found, we should abort. (why?)
   }
 
@@ -181,12 +186,18 @@ int step1(bool showPrompt) {
   if (child2 == 0) {
     // redirect the output of the shared communication channel to the standard input (STDIN_FILENO).
     // free non used resources (why?)
+    dup2(p[0], STDIN_FILENO);
+    close(p[0]);
+    close(p[1]);
     Command cmd = {{string("tail"), string("-c"), string("5")}};
     execute_command(cmd);
+    perror("an error has occured");
     abort(); // if the executable is not found, we should abort. (why?)
   }
 
   // free non used resources (why?)
+  close(p[0]);
+  close(p[1]);
   // wait on child processes to finish (why both?)
   waitpid(child1, nullptr, 0);
   waitpid(child2, nullptr, 0);
@@ -194,7 +205,7 @@ int step1(bool showPrompt) {
 }
 
 int shell(bool showPrompt) {
-  //* <- remove one '/' in front of the other '/' to switch from the normal code to step1 code
+  /* <- remove one '/' in front of the other '/' to switch from the normal code to step1 code
   while (cin.good()) {
     string commandLine = request_command_line(showPrompt);
     Expression expression = parse_command_line(commandLine);
