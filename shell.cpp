@@ -151,12 +151,29 @@ int execute_expression(Expression& expression) {
     return EINVAL;
 
   // Handle intern commands (like 'cd' and 'exit')
-  
+  if(expression.commands[0].parts[0] == "exit")
+    exit(0);
+
+  if(expression.commands[0].parts[0] == "cd")
+  {
+    if(expression.commands[0].parts.size() != 2)
+    {
+      return EINVAL;
+    }
+    const char* path = expression.commands[0].parts[1].c_str();
+    if(chdir(path) != 0)
+    {
+      return EINVAL;
+    }
+    return 0;
+  }
+
+
   // External commands, executed with fork():
   // Loop over all commandos, and connect the output and input of the forked processes
   // create pipes
   size_t command_length = expression.commands.size();
-  vector<array<int,2>> pipes;
+  vector<pair<int,int>> pipes;
   vector<int> pids;
 
   for (size_t i = 0; i < command_length-1; ++i) {
@@ -165,25 +182,25 @@ int execute_expression(Expression& expression) {
         perror("pipe");
         exit(1);
     }
-
-    pipes.push_back({x[0],x[1]});
+    pipes.emplace_back(x[0], x[1]);
   }
 
   for (size_t i = 0; i < command_length; ++i) {
+    // external commands.
     pid_t pid = fork();
     if (pid == 0) {
       // bind input if its not the first command
       if (i > 0) {
-          dup2(pipes[i-1][0], STDIN_FILENO);
+          dup2(pipes[i-1].first, STDIN_FILENO);
       }
       // bind output if its not the last command
       if (i < command_length-1) {
-          dup2(pipes[i][1], STDOUT_FILENO);
+          dup2(pipes[i].second, STDOUT_FILENO);
       }
 
       for (size_t j = 0; j < command_length-1; ++j) {
-          close(pipes[j][0]);
-          close(pipes[j][1]);
+          close(pipes[j].first);
+          close(pipes[j].second);
       }
 
       execute_command(expression.commands[i]);
@@ -192,8 +209,8 @@ int execute_expression(Expression& expression) {
   }
 
   for (size_t i = 0; i < command_length-1; ++i) {
-    close(pipes[i][0]);
-    close(pipes[i][1]);
+    close(pipes[i].first);
+    close(pipes[i].second);
   }
 
   if (!expression.background) {
@@ -252,6 +269,11 @@ int shell(bool showPrompt) {
   //* <- remove one '/' in front of the other '/' to switch from the normal code to step1 code
   while (cin.good()) {
     string commandLine = request_command_line(showPrompt);
+    if(!cin.good())
+    {
+      cout << endl;
+      break;
+    }
     Expression expression = parse_command_line(commandLine);
     int rc = execute_expression(expression);
     if (rc != 0)
