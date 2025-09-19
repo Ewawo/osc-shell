@@ -1,7 +1,7 @@
 project(shell)
 cmake_minimum_required(VERSION 3.0)
 
-OPTION(BUILD_TESTS "Build the tests" OFF)
+OPTION(BUILD_TESTS "Build the tests" ON)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)

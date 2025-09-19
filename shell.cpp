@@ -154,9 +154,53 @@ int execute_expression(Expression& expression) {
   
   // External commands, executed with fork():
   // Loop over all commandos, and connect the output and input of the forked processes
+  // create pipes
+  size_t command_length = expression.commands.size();
+  vector<array<int,2>> pipes;
+  vector<int> pids;
 
-  // For now, we just execute the first command in the expression. Disable.
-  execute_command(expression.commands[0]);
+  for (size_t i = 0; i < command_length-1; ++i) {
+    int x[2];
+    if (pipe(x) == -1) {
+        perror("pipe");
+        exit(1);
+    }
+
+    pipes.push_back({x[0],x[1]});
+  }
+
+  for (size_t i = 0; i < command_length; ++i) {
+    pid_t pid = fork();
+    if (pid == 0) {
+      // bind input if its not the first command
+      if (i > 0) {
+          dup2(pipes[i-1][0], STDIN_FILENO);
+      }
+      // bind output if its not the last command
+      if (i < command_length-1) {
+          dup2(pipes[i][1], STDOUT_FILENO);
+      }
+
+      for (size_t j = 0; j < command_length-1; ++j) {
+          close(pipes[j][0]);
+          close(pipes[j][1]);
+      }
+
+      execute_command(expression.commands[i]);
+    }
+    pids.push_back(pid);
+  }
+
+  for (size_t i = 0; i < command_length-1; ++i) {
+    close(pipes[i][0]);
+    close(pipes[i][1]);
+  }
+
+  if (!expression.background) {
+    for (int pid : pids) {
+      waitpid(pid, nullptr, 0);
+    }
+  }
 
   return 0;
 }
@@ -205,7 +249,7 @@ int step1(bool showPrompt) {
 }
 
 int shell(bool showPrompt) {
-  /* <- remove one '/' in front of the other '/' to switch from the normal code to step1 code
+  //* <- remove one '/' in front of the other '/' to switch from the normal code to step1 code
   while (cin.good()) {
     string commandLine = request_command_line(showPrompt);
     Expression expression = parse_command_line(commandLine);
