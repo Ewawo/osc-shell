@@ -189,6 +189,26 @@ int execute_expression(Expression& expression) {
     // external commands.
     pid_t pid = fork();
     if (pid == 0) {
+      // set input file if its the first command and input file is given
+      if (i == 0 && expression.inputFromFile != "") {
+        int input = open(expression.inputFromFile.c_str(), O_RDONLY);
+        if (input == -1) {
+            return ENOENT;
+        }
+        dup2(input, STDIN_FILENO);
+        close(input);
+      }
+
+      // set output file if its the last command and output file is given
+      if (i == command_length - 1 && expression.outputToFile != "") {
+        int output = open(expression.outputToFile.c_str(), O_WRONLY);
+        if (output == -1) {
+            return ENOENT;
+        }
+        dup2(output, STDOUT_FILENO);
+        close(output);
+      }
+
       // bind input if its not the first command
       if (i > 0) {
           dup2(pipes[i-1].first, STDIN_FILENO);
