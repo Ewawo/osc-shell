@@ -163,7 +163,7 @@ int execute_expression(Expression& expression) {
     const char* path = expression.commands[0].parts[1].c_str();
     if(chdir(path) != 0)
     {
-      return EINVAL;
+      return ENOENT;
     }
     return 0;
   }
@@ -297,7 +297,10 @@ int shell(bool showPrompt) {
     Expression expression = parse_command_line(commandLine);
     int rc = execute_expression(expression);
     if (rc != 0)
+    {
       cerr << strerror(rc) << endl;
+      exit(rc);
+    }
   }
   return 0;
   /*/
