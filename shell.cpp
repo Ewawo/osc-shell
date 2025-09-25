@@ -201,7 +201,12 @@ int execute_expression(Expression& expression) {
 
       // set output file if its the last command and output file is given
       if (i == command_length - 1 && expression.outputToFile != "") {
-        int output = open(expression.outputToFile.c_str(), O_WRONLY);
+        // Voor output redirect >
+        int output = open(expression.outputToFile.c_str(),
+                  O_WRONLY | O_CREAT | O_TRUNC,
+                  0644);
+
+
         if (output == -1) {
             return ENOENT;
         }
@@ -223,7 +228,11 @@ int execute_expression(Expression& expression) {
           close(pipes[j].second);
       }
 
-      execute_command(expression.commands[i]);
+      int rc = execute_command(expression.commands[i]);
+      if (rc != 0) {
+        cerr << strerror(rc) << endl;
+        exit(rc);  
+      }
     }
     pids.push_back(pid);
   }
@@ -299,7 +308,7 @@ int shell(bool showPrompt) {
     if (rc != 0)
     {
       cerr << strerror(rc) << endl;
-      exit(rc);
+      // exit(rc);
     }
   }
   return 0;
