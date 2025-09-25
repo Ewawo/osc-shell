@@ -152,8 +152,10 @@ int execute_expression(Expression& expression) {
 
   // Handle intern commands (like 'cd' and 'exit')
   if(expression.commands[0].parts[0] == "exit")
+  {
+    cout<< "exit" <<endl;
     exit(0);
-
+  }
   if(expression.commands[0].parts[0] == "cd")
   {
     if(expression.commands[0].parts.size() != 2)
@@ -193,8 +195,8 @@ int execute_expression(Expression& expression) {
       if (i == 0 && expression.inputFromFile != "") {
         int input = open(expression.inputFromFile.c_str(), O_RDONLY);
         if (input == -1) {
-            cerr << strerror(ENOENT) << endl;
-            exit(ENOENT);  
+            perror("open input failed");;
+            exit(errno);  
         }
         dup2(input, STDIN_FILENO);
         close(input);
@@ -203,10 +205,10 @@ int execute_expression(Expression& expression) {
       // set output file if its the last command and output file is given
       if (i == command_length - 1 && expression.outputToFile != "") {
         // Voor output redirect >
-        int output = open(expression.outputToFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC);
+        int output = open(expression.outputToFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
         if (output == -1) {
-            cerr << strerror(ENOENT) << endl;
-            exit(ENOENT);  
+            perror("open output failed");;
+            exit(errno);  
         }
         dup2(output, STDOUT_FILENO);
         close(output);
@@ -228,7 +230,7 @@ int execute_expression(Expression& expression) {
 
       int rc = execute_command(expression.commands[i]);
       if (rc != 0) {
-        cerr << strerror(rc) << endl;
+        cerr << "exec failed: " << strerror(rc) << endl;
         exit(rc);  
       }
     }
@@ -296,17 +298,11 @@ int shell(bool showPrompt) {
   //* <- remove one '/' in front of the other '/' to switch from the normal code to step1 code
   while (cin.good()) {
     string commandLine = request_command_line(showPrompt);
-    if(!cin.good())
-    {
-      cout << endl;
-      break;
-    }
     Expression expression = parse_command_line(commandLine);
     int rc = execute_expression(expression);
     if (rc != 0)
     {
       cerr << strerror(rc) << endl;
-      // exit(rc);
     }
   }
   return 0;
