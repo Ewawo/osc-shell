@@ -193,7 +193,8 @@ int execute_expression(Expression& expression) {
       if (i == 0 && expression.inputFromFile != "") {
         int input = open(expression.inputFromFile.c_str(), O_RDONLY);
         if (input == -1) {
-            return ENOENT;
+            cerr << strerror(ENOENT) << endl;
+            exit(ENOENT);  
         }
         dup2(input, STDIN_FILENO);
         close(input);
@@ -202,9 +203,10 @@ int execute_expression(Expression& expression) {
       // set output file if its the last command and output file is given
       if (i == command_length - 1 && expression.outputToFile != "") {
         // Voor output redirect >
-        int output = open(expression.outputToFile.c_str(), O_WRONLY);
+        int output = open(expression.outputToFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC);
         if (output == -1) {
-            return ENOENT;
+            cerr << strerror(ENOENT) << endl;
+            exit(ENOENT);  
         }
         dup2(output, STDOUT_FILENO);
         close(output);
