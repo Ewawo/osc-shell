@@ -202,11 +202,7 @@ int execute_expression(Expression& expression) {
       // set output file if its the last command and output file is given
       if (i == command_length - 1 && expression.outputToFile != "") {
         // Voor output redirect >
-        int output = open(expression.outputToFile.c_str(),
-                  O_WRONLY | O_CREAT | O_TRUNC,
-                  0644);
-
-
+        int output = open(expression.outputToFile.c_str(), O_WRONLY);
         if (output == -1) {
             return ENOENT;
         }
