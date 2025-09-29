@@ -114,7 +114,10 @@ string request_command_line(bool showPrompt) {
     display_prompt();
   }
   string retval;
-  getline(cin, retval);
+  if(!getline(cin, retval))
+  {
+    return "";
+  }
   return retval;
 }
 
@@ -298,6 +301,13 @@ int shell(bool showPrompt) {
   //* <- remove one '/' in front of the other '/' to switch from the normal code to step1 code
   while (cin.good()) {
     string commandLine = request_command_line(showPrompt);
+    if (!cin) {
+      break;
+    }
+    if(commandLine.empty())
+    {
+      continue;
+    }
     Expression expression = parse_command_line(commandLine);
     int rc = execute_expression(expression);
     if (rc != 0)
