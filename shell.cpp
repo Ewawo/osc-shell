@@ -233,7 +233,7 @@ int execute_expression(Expression& expression) {
 
       int rc = execute_command(expression.commands[i]);
       if (rc != 0) {
-        cerr << "exec failed: " << strerror(rc) << endl;
+        cerr << expression.commands[i].parts[0] << ": command not found" << endl;
         exit(rc);  
       }
     }
